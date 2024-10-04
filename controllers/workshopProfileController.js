@@ -3,7 +3,9 @@ import AppError from "../handleErrors/appError.js";
 import catchAsync from "../handleErrors/catchAsync.js";
 import { Product } from "../models/productModel.js";
 import Workshop from "../models/workshopModel.js";
-
+import { User } from "../models/userModel.js";
+import { upload } from "../uploads/multer.js";
+import { cloudinary } from "../uploads/cloudinary.js";
 const getProductsByWorkshop = catchAsync(async (req, res, next) => {
   const { workshopId } = req.params;
   const { page = 1, limit = 10 } = req.query;
@@ -76,5 +78,74 @@ const deleteWorkshop = catchAsync(async (req, res, next) => {
     message: "workshop deleted successfully",
   });
 });
+const updateWorkshopProfile = catchAsync(async (req, res, next) => {
+  const userId = req.user.id;
+  const user = await User.findById(userId);
 
-export { getProductsByWorkshop, addWorkshop, deleteWorkshop };
+  if (!user) {
+    return next(new AppError("User not found", 404));
+  }
+const { name, description, location, contactEmail, phoneNumber } = req.body;
+  const imageToUpload = req.file;
+ 
+
+  if (!user.registrationDocuments.personalCloudinary_id) {
+    user.registrationDocuments.personalCloudinary_id = "";
+  }
+
+  if (!imageToUpload) {
+    req.body.personalPhoto = user.registrationDocuments.personalPhoto || "";
+    req.body.personalCloudinary_id = user.registrationDocuments.personalCloudinary_id || "";
+  } else {
+    try {
+      const result = await cloudinary.v2.uploader.upload(imageToUpload.path);
+    
+
+      req.body.personalPhoto = result.secure_url;
+      req.body.  personalCloudinary_id = result.public_id;
+
+      if (user.registrationDocuments.personalCloudinary_id) {
+        await cloudinary.uploader.destroy(user.registrationDocuments.personalCloudinary_id);
+      }
+    } catch (error) {
+      return next(new AppError('Cloudinary upload failed', 500));
+    }
+  }
+
+
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId, 
+    { 
+      $set: { 
+        
+          'registrationDocuments.personalPhoto': req.body.personalPhoto,
+          'registrationDocuments.personCloudinary_id': req.body.personalCloudinary_id,
+      
+         },
+      ...req.body
+    }, 
+    
+    {
+      new: true, // Ensure we get the updated document
+      runValidators: true, // Run any validations for the fields
+    }
+  );
+
+  if (!updatedUser) {
+    return next(new AppError('User update failed', 500));
+  }
+
+ 
+
+  res.status(200).json({
+    status: "success",
+    updatedUser,
+  });
+});
+
+
+
+
+  
+export { getProductsByWorkshop, addWorkshop, deleteWorkshop ,updateWorkshopProfile};

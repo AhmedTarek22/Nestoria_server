@@ -94,9 +94,18 @@ const userSchema = new Schema(
       type: String,
       trim: true,
     },
+    photo: {
+      type: String,
+    },
+    cloudinary_id: {
+      type: String,
+    },
     balance: {
       type: Number,
       default: 0,
+    },
+    StripeAccountID: {
+      type: String,
     },
 
     ratings: [
@@ -109,6 +118,7 @@ const userSchema = new Schema(
         },
       },
     ],
+    averageRating: { type: Number, default: 0 },
 
     products: [
       {
@@ -116,10 +126,7 @@ const userSchema = new Schema(
         ref: "Product",
       },
     ],
-token:{
-  type:String,
-  default:""
-},
+
     topSellingProducts: [
       {
         product: {
@@ -157,6 +164,10 @@ token:{
       detailedAddress: {
         type: String,
       },
+      personalCloudinary_id:{
+        type:String
+      }
+      
     },
 
     passwordResetToken: String,

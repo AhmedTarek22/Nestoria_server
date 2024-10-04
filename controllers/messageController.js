@@ -3,6 +3,7 @@ import { Chat } from "../models/chatModel.js";
 import { User } from "../models/userModel.js";
 import { Message } from "../models/messageModel.js";
 import catchAsync from "../handleErrors/catchAsync.js";
+import { cloudinary } from "../uploads/cloudinary.js";
 //@description     Get all Messages
 //@route           GET /api/Message/:chatId
 //@access          Protected
@@ -39,19 +40,78 @@ const sendMessage = catchAsync(async (req, res, next) => {
     var message = await Message.create(newMessage);
 
     message = await message.populate("sender", "fullName photo");
-    message = await message.populate("chat");
+    message = await message.populate({
+      path: 'chat',
+      populate: {
+        path: 'users', // تأكد من جلب الـ users عند جلب الـ chat
+        select: 'fullName photo email'
+      }
+    });
     message = await User.populate(message, {
       path: "chat.users",
       select: "fullName photo email",
     });
-
+   
+console.log("Populated message:", message);
     await Chat.findByIdAndUpdate(req.body.chatId, { latestMessage: message });
-
+    console.log("Chat object with users:", message.chat);
     res.json(message);
   } catch (error) {
     res.status(400);
     throw new Error(error.message);
   }
 });
+const sendPhoto = catchAsync(async (req, res, next) => {
+  if (!req.file) {
+    return res.status(400).json({ status: 'error', message: 'No file uploaded' });
+  }
 
-export { allMessages, sendMessage };
+  const { chatId } = req.body;
+  const result = await cloudinary.v2.uploader.upload(req.file.path); // Upload to Cloudinary
+
+  if (!chatId) {
+    return res.status(400).json({ status: 'error', message: 'Invalid chatId' });
+  }
+
+  const newPhoto = {
+    sender: req.user._id,
+    photo: result.secure_url,
+    cloudinary_id: result.public_id,
+    chat: chatId,
+  };
+
+  try {
+    let message = await Message.create(newPhoto);
+
+    message = await message.populate("sender", "fullName photo")
+    message = await message.populate("chat");
+    await User.populate(message, {
+      path: "chat.users",
+      select: "fullName photo email",
+    });
+    await Chat.findByIdAndUpdate(chatId, { latestMessage: message });
+
+    res.status(200).json(message);
+  } catch (error) {
+    res.status(400).json({ status: 'error', message: error.message });
+  }
+});
+
+const deleteMessage = catchAsync(async (req, res, next) => {
+  const { messageId } = req.params;
+
+  if (!messageId) {
+    console.log("Invalid data passed into request");
+    return next(new Error("Invalid data passed into request", 400)) 
+  }
+
+  
+    const message = await Message.findByIdAndDelete(messageId);
+  
+    if (!message) {
+      return next(new Error("Message not found", 404));  // Handling case where message is not found
+    }
+    res.json({ success: true , msg: "message deleted successfully"});
+
+})
+export { allMessages, sendMessage ,sendPhoto,deleteMessage};

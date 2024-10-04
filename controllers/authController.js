@@ -44,9 +44,7 @@ const login = catchAsync(async (req, res, next) => {
       new AppError("You should verify your account, check your email", 401)
     );
   }
-const token=signToken(user._id, user.role);
-user.token=token;
-await user.save();
+
   createSendToken(user, 200, res);
 });
 
@@ -169,33 +167,18 @@ const resetPassword = catchAsync(async (req, res, next) => {
   createSendToken(user, 200, res);
 });
 
-const logout=catchAsync(async(req,res,next)=>{
-  const user=req.user
-  if(user.token===""||user.token === null){
-    return next(new AppError("you are not logged in",401))
-
-  }
-  await User.findByIdAndUpdate(user.id,{token:""})
-  res.status(200).json({
-    status: "success",
-    message: "logged out successfully",
-  });
-})
-export { login, signup, forgotPassword, resetPassword ,logout};
-
-
 const verifyRole = catchAsync(async (req, res, next) => {
   res.json({ message: "Welcome to the Admin Dashboard" });
 });
+
 const verifyWorkshopRole = catchAsync(async (req, res, next) => {
   res.json({ message: "Welcome to the workshop dashboard" });
 });
-
 const applyAcceptance = catchAsync(async (req, res, next) => {
   const { id } = req.user;
   const user = await User.findOne({ _id: id });
   if (user) {
-    res.json({ message: "success", state: user.registerStatus });
+    res.json({ message: "success", user: user });
   } else {
     return next(new AppError("there is no user founded", 404));
   }
