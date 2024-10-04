@@ -9,7 +9,7 @@ const productSchema = new Schema(
       minlength: 3,
       maxlength: 100,
     },
-    nameAR:{
+    nameInArabic: {
       type: String,
       trim: true,
       minlength: 3,
@@ -26,13 +26,12 @@ const productSchema = new Schema(
       trim: true,
       required: true,
     },
-    descriptionAR: {
+    descriptionInArabic: {
       type: String,
       trim: true,
-      
     },
     images: {
-      type: [String], 
+      type: [String],
       default: [],
     },
     category: {
@@ -40,7 +39,7 @@ const productSchema = new Schema(
       required: true,
     },
     cloudinary_ids: {
-      type: [String], 
+      type: [String],
       default: [],
     },
     status: {
@@ -57,22 +56,34 @@ const productSchema = new Schema(
       min: 0,
       max: 100000000000000,
     },
-    color:{
-      type: String,
-      
+
+    color: {
+      type: [String], // تعريفه كمصفوفة من السلاسل النصية
+      required: true,
     },
-   
-    ratingsAvg: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 5,
-      set: (value) => Math.round(value * 10) / 10, // 4.6666 => 4.7
-    },
-    ratingQuantity: {
-      type: Number,
-      default: 0,
-    },
+
+    ratings: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        rating: { type: Number, min: 1, max: 5 },
+        comment: String,
+      },
+    ],
+
+    averageRating: { type: Number, default: 0 },
+
+    // rating: {
+    //   type: Number,
+    //   default: 0,
+    //   min: 0,
+    //   max: 5,
+    //   set: (value) => Math.round(value * 10) / 10, // 4.6666 => 4.7
+    // },
+    // ratingQuantity: {
+    //   type: Number,
+    //   default: 0,
+    // },
+
     workshop_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -91,11 +102,11 @@ const productSchema = new Schema(
 );
 
 // Virtual populate
-productSchema.virtual("ratings", {
-  ref: "Rating",
-  foreignField: "Product",
-  localField: "_id",
-});
+// productSchema.virtual("ratings", {
+//   ref: "Rating",
+//   foreignField: "Product",
+//   localField: "_id",
+// });
 
 productSchema.virtual("favorites", {
   ref: "Favorite",
